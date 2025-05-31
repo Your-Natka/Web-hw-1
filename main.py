@@ -3,6 +3,9 @@ from storage import load_data, save_data
 from modul8.address_book import AddressBook
 from modul8.fields import Name, Phone, Birthday
 from modul8.record import Record
+from views.console import ConsoleView  # ✅ нове
+
+view = ConsoleView()  # ✅ інтерфейс
 
 def add_contact(args, book):
     name, phone = args
@@ -40,7 +43,7 @@ def show_all(args, book: AddressBook):
     result = []
     for record in book.values():
         phones = ', '.join(str(p) for p in record.phones)
-        birthday = str(record.birthday) if record.birthday else "No birthday"
+        birthday = record.birthday.value if record.birthday else "No birthday"
         result.append(f"{record.name.value}: {phones}; Birthday: {birthday}")
     return '\n'.join(result)
 
@@ -56,11 +59,10 @@ def add_birthday(args, book: AddressBook):
 def show_birthday(args, book: AddressBook):
     if not args:
         return "Please provide a contact name."
-
     name = args[0]
     record = book.get(name)
     if record and record.birthday:
-        return f"{name}'s birthday: {record.birthday}"
+        return f"{name}'s birthday: {record.birthday.value}"
     else:
         return f"No birthday found for {name}."
 
@@ -91,42 +93,40 @@ def parse_command(user_input):
 
 def main():
     book = load_data()
+    view.display_message("Welcome to the assistant bot!")
+
     commands = {
-    "add": add_contact,
-    "change": change_contact,
-    "phone": show_phone,
-    "all": show_all,
-    "add-birthday": add_birthday,
-    "show-birthday": show_birthday,
-    "birthdays": birthdays,
-    "clear": clear_book,
-    "hello": lambda args, book: "How can I help you?",
-}
-    print("Welcome to the assistant bot!")
+        "add": add_contact,
+        "change": change_contact,
+        "phone": show_phone,
+        "all": show_all,
+        "add-birthday": add_birthday,
+        "show-birthday": show_birthday,
+        "birthdays": birthdays,
+        "clear": clear_book,
+        "hello": lambda args, book: "How can I help you?",
+    }
 
     while True:
-        user_input = input("Enter a command: ").strip()
+        user_input = view.get_input("Enter a command: ").strip()
         if not user_input:
             continue
-        parts = user_input.split()
-        command = parts[0].lower()
-        args = parts[1:]
+        command, args = parse_command(user_input)
 
         if command in ["close", "exit"]:
-            save_data(book)
-            print("Good bye!")
-            break 
+            view.display_message(exit_program(args, book))
+            break
 
         handler = commands.get(command)
         if handler:
             try:
                 result = handler(args, book)
                 if result is not None:
-                    print(result)
+                    view.display_message(result)
             except Exception as e:
-                print(f"Error: {e}")
+                view.display_message(f"Error: {e}")
         else:
-            print("Invalid command.")
+            view.display_message("Invalid command.")
 
 if __name__ == "__main__":
     main()
